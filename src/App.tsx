@@ -22,14 +22,14 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
   const results = q ? TABS.filter((t) => n(t.name + ' ' + t.summary).includes(n(q))) : []
   const link = (t: (typeof TABS)[number]) => (
     <div key={t.id} className="group flex items-center">
-      <NavLink to={t.route} end onClick={onNavigate} className={({ isActive }) => `flex-1 truncate rounded-md px-2 py-1.5 text-sm ${isActive ? 'bg-brand-500 font-medium text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+      <NavLink to={t.route} end onClick={onNavigate} className={({ isActive }) => `flex-1 truncate rounded-md px-2 py-1.5 text-sm ${isActive ? 'bg-brand-500 font-medium text-white' : 'text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800'}`}>
         {t.num ? <span className="mr-1 text-xs opacity-60">{t.num}</span> : null}{t.name}
       </NavLink>
       <button aria-label={fav.includes(t.id) ? `Remover ${t.name} dos favoritos` : `Favoritar ${t.name}`} onClick={() => toggleFav(t.id)} className={`px-1 ${fav.includes(t.id) ? 'text-amber-400' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`}><Star size={13} fill={fav.includes(t.id) ? 'currentColor' : 'none'} /></button>
     </div>
   )
   return (
-    <nav className="flex h-full flex-col gap-3 overflow-y-auto p-3" aria-label="Menu principal">
+    <nav className="flex h-full flex-col gap-3 overflow-y-auto p-3 pt-10 lg:pt-3" aria-label="Menu principal">
       <Link to="/" className="flex items-center gap-2 px-2 text-lg font-bold" onClick={onNavigate}><span className="rounded-lg bg-brand-500 px-2 py-0.5 text-white">RP</span> RestauProfit <span className="text-brand-500">Pro</span></Link>
       <label className="relative"><Search size={14} className="absolute left-2 top-2.5 text-slate-400" /><input className="input pl-7" placeholder="Buscar funcionalidade..." value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar funcionalidade" /></label>
       {q ? <div>{results.map(link)}{!results.length && <p className="px-2 text-sm text-slate-400">Nada encontrado.</p>}</div> : <>
@@ -40,10 +40,10 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
             </NavLink>
           ))}
         </div>
-        {fav.length > 0 && <div><div className="px-2 pb-1 text-xs font-semibold uppercase text-slate-400">Favoritos</div>{TABS.filter((t) => fav.includes(t.id)).map(link)}</div>}
+        {fav.length > 0 && <div><div className="px-2 pb-1 text-xs font-semibold uppercase text-slate-900 dark:text-slate-100">Favoritos</div>{TABS.filter((t) => fav.includes(t.id)).map(link)}</div>}
         {CATEGORIES.map((c, i) => (
           <div key={c}>
-            <button className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-expanded={!!open[c]} onClick={() => setOpen({ ...open, [c]: !open[c] })}>
+            <button className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800" aria-expanded={!!open[c]} onClick={() => setOpen({ ...open, [c]: !open[c] })}>
               <span>{i + 1}. {c}</span>{open[c] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
             {open[c] && <div className="ml-1 border-l pl-1 dark:border-slate-800">{TABS.filter((t) => t.category === c).map(link)}</div>}
