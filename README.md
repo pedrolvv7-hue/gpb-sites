@@ -20,6 +20,22 @@ Para experimentar: Configurações → "Carregar dados de demonstração" (dados
 3. `vercel.json` já redireciona todas as rotas para `index.html` (SPA).
 Cada push na branch configurada gera nova publicação automaticamente.
 
+## Login e contas (Supabase)
+
+O login fica ligado quando as variáveis abaixo existem no build (na Vercel: Settings > Environment Variables):
+
+```
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=chave-anon-publica
+```
+
+1. Crie um projeto em supabase.com.
+2. Em SQL Editor, rode `supabase/schema.sql` (cria a tabela `restaurant_data` com RLS: cada usuário só acessa a própria linha).
+3. Em Authentication > URL Configuration, coloque a URL do site em "Site URL".
+4. Configure as variáveis e publique de novo.
+
+Sem as variáveis, o sistema funciona em modo local (dados no navegador, sem login).
+
 ## Arquitetura
 
 | Camada | Arquivo |
@@ -41,8 +57,7 @@ Não foi usado shadcn/ui: os componentes base estão em `src/components/ui.tsx`.
 
 ## Limitações importantes (versão atual)
 
-- **Dados ficam no navegador** (localStorage, ~5 MB). Não há login em servidor, separação por empresa no backend nem sincronização entre dispositivos. Backup/restauração em JSON em Configurações.
-- Para produção multiusuário: criar projeto Supabase, aplicar `supabase/schema.sql`, implementar a camada de persistência remota e o login (Supabase Auth). Isso exige credenciais que não estão configuradas.
+- Com login ativo, os dados de cada conta são salvos como um único documento por usuário (`restaurant_data`). Não há ainda vários usuários por restaurante (ex.: gerente e dono na mesma conta) nem permissões por função.
 - Integrações externas (plataformas de delivery, PDV/ERP, bancos, IA generativa) **não estão implementadas**; a Central de Integrações mostra isso. Toda entrada de dados é por planilha ou cadastro.
 - PDF é gerado pela impressão do navegador. Leitura de PDF/imagem de documentos e leitura de código de barras por câmera não estão implementadas (leitor USB/Bluetooth que digita funciona).
 - O cardápio digital público só é visível no próprio dispositivo até haver backend.

@@ -9,6 +9,45 @@ import { CardapioPublico } from './tabs/cardapio'
 import { Onboarding } from './components/Onboarding'
 import { computeAlerts } from './lib/alerts'
 import { runAll } from './lib/autopilot'
+import { LogOut } from 'lucide-react'
+import { supabase, authEnabled } from './lib/supabase'
+import { AuthScreen, NewPassword, useSession } from './components/Auth'
+import { flushAndStop, syncState } from './lib/cloudSync'
+
+function UserMenu() {
+  const [, force] = useState(0)
+  const [email, setEmail] = useState('')
+  useEffect(() => {
+    const l = () => force((x) => x + 1)
+    syncState.listeners.add(l)
+    supabase?.auth.getUser().then(({ data }) => setEmail(data.user?.email || ''))
+    return () => { syncState.listeners.delete(l) }
+  }, [])
+  if (!authEnabled) return null
+  const label = { idle: '', carregando: 'Carregando...', salvando: 'Salvando...', salvo: 'Salvo na nuvem', erro: 'Erro ao salvar' }[syncState.status]
+  const logout = async () => {
+    await flushAndStop()
+    await supabase!.auth.signOut()
+    useStore.persist.setOptions({ name: 'restauprofit-pro-v1-anon' })
+    useStore.getState().clearAll()
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`hidden text-xs md:inline ${syncState.status === 'erro' ? 'text-red-600' : 'text-slate-500'}`} title={syncState.error}>{label}</span>
+      <span className="hidden max-w-[160px] truncate text-xs text-slate-700 dark:text-slate-300 lg:inline">{email}</span>
+      <button className="btn-ghost" onClick={logout} aria-label="Sair"><LogOut size={16} /><span className="hidden sm:inline">Sair</span></button>
+    </div>
+  )
+}
+
+function AuthGate() {
+  const { session, ready, recovery, clearRecovery } = useSession()
+  if (!authEnabled) return <Shell />
+  if (!ready) return <div className="flex min-h-screen items-center justify-center text-slate-500">Carregando...</div>
+  if (recovery && session) return <NewPassword onDone={clearRecovery} />
+  if (!session) return <AuthScreen />
+  return <Shell key={session.user.id} />
+}
 
 function Sidebar({ onNavigate }: { onNavigate: () => void }) {
   const { settings, setSettings } = useStore()
@@ -70,6 +109,7 @@ function Header({ onMenu, onSetup }: { onMenu: () => void; onSetup: () => void }
       )}
       {!settings.onboardingDone && <button className="btn-ghost" onClick={onSetup} aria-label="Configuração inicial"><Rocket size={15} /><span className="hidden sm:inline">Configuração inicial</span></button>}
       <Link to="/alertas" className="btn-ghost relative" aria-label={`${open} alertas abertos`}><Bell size={16} />{open > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-[10px] text-white">{open}</span>}</Link>
+      <UserMenu />
       <button className="btn-ghost" aria-label="Alternar tema" onClick={() => setSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}>{settings.theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
     </header>
   )
@@ -117,7 +157,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/cardapio-publico" element={<CardapioPublico />} />
-      <Route path="*" element={<Shell />} />
+      <Route path="*" element={<AuthGate />} />
     </Routes>
   )
 }

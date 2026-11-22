@@ -12,6 +12,7 @@ import { TASKS, runTask, runAll } from '../lib/autopilot'
 import { TABS } from './registry'
 import { buildDemo } from '../data/demo'
 import { TutorialCenter } from '../tutorials/TutorialCenter'
+import { authEnabled } from '../lib/supabase'
 
 // ------------------------------------------------------------------ 65 SmartImport
 interface Job { id: string; parsed: ParsedFile; entity: EntityKey; map: Record<string, string>; confidence: number; unit: string; onlyValid: boolean; done?: string }
@@ -243,7 +244,8 @@ export function Configuracoes() {
         </Section>
         <Section title="Dados e segurança">
           <div className="space-y-2 text-sm">
-            <Notice tone="warn">Nesta versão os dados ficam somente neste navegador (armazenamento local), separados por dispositivo. Não há login em servidor. Para várias pessoas, login seguro e separação por empresa no servidor, ative o Supabase (ver README e supabase/schema.sql). Faça backups regulares.</Notice>
+            {authEnabled ? <Notice tone="ok">Seus dados ficam salvos na nuvem, vinculados à sua conta, e só você tem acesso a eles. Faça backups mesmo assim.</Notice>
+              : <Notice tone="warn">Login desativado: os dados ficam somente neste navegador. Para ativar contas, configure o Supabase (ver README). Faça backups regulares.</Notice>}
             <div className="flex flex-wrap gap-2">
               <button className="btn-ghost" data-tour="export" onClick={exportAll}>Exportar todos os dados (JSON)</button>
               <label className="btn-ghost cursor-pointer">Restaurar backup<input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && restore(e.target.files[0])} /></label>
