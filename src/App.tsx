@@ -35,7 +35,7 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
       {q ? <div>{results.map(link)}{!results.length && <p className="px-2 text-sm text-slate-400">Nada encontrado.</p>}</div> : <>
         <div className="space-y-0.5">
           {TABS.filter((t) => t.id === 'autopilot' || t.id === 'tutorial').map((t) => (
-            <NavLink key={t.id} to={t.route} onClick={onNavigate} className={({ isActive }) => `flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium ${isActive ? 'bg-brand-500 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+            <NavLink key={t.id} to={t.route} onClick={onNavigate} className={({ isActive }) => `flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium ${t.id === 'tutorial' ? (isActive ? 'bg-red-600 text-white' : 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-slate-800') : isActive ? 'bg-brand-500 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
               {t.id === 'autopilot' ? <Bot size={15} /> : <GraduationCap size={15} />} {t.id === 'tutorial' ? 'Central de Tutoriais' : t.name}
             </NavLink>
           ))}
