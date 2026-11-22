@@ -209,7 +209,12 @@ export const useStore = create<State>()(
     }),
     {
       name: 'restauprofit-pro-v1',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => ({
+        // navegadores de celular limitam o armazenamento; uma falha ao salvar não pode travar a tela
+        getItem: (k) => { try { return localStorage.getItem(k) } catch { return null } },
+        setItem: (k, v) => { try { localStorage.setItem(k, v) } catch (e) { console.warn('Armazenamento local cheio ou indisponível', e) } },
+        removeItem: (k) => { try { localStorage.removeItem(k) } catch { /* ignora */ } },
+      })),
       merge: (persisted: any, current) => ({
         ...current,
         ...persisted,

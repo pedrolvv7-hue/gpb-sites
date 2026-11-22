@@ -49,11 +49,11 @@ export function buildDemo(): Partial<Record<keyof Data, any[]>> {
   const channels = ['salao', 'salao', 'salao', 'retirada', 'delivery_proprio', 'ifood', 'ifood']
   const sales: any[] = [], orders: any[] = []
   let oid = 1000
-  for (let d = 89; d >= 0; d--) {
+  for (let d = 59; d >= 0; d--) {
     const date = addDays(end, -d)
     const dow = new Date(date + 'T12:00:00').getDay()
     for (const u of units) {
-      const base = (u.code === 'CTR' ? 38 : 24) * [1.25, 0.6, 0.75, 0.85, 0.95, 1.35, 1.5][dow] * (1 + (89 - d) * 0.002)
+      const base = (u.code === 'CTR' ? 38 : 24) * [1.25, 0.6, 0.75, 0.85, 0.95, 1.35, 1.5][dow] * (1 + (59 - d) * 0.003)
       const n = Math.round(base * (0.85 + r() * 0.3))
       for (let i = 0; i < n; i++) {
         oid++
