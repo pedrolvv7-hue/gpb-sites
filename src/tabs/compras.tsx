@@ -55,7 +55,7 @@ export function HistoricoCompras() {
   return (
     <Page actions={<PeriodPicker value={p} onChange={setP} />}>
       <Grid cols={3}><Kpi label="Total comprado" value={money(bySup.reduce((a, r) => a + r.v, 0))} /><Kpi label="Compras" value={rows.length} /><Kpi label="Fornecedores" value={bySup.length} /></Grid>
-      {bySup.length > 0 && <Section title="Por fornecedor"><ChartBox height={220}><ResponsiveContainer><BarChart data={bySup}><XAxis dataKey="k" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="v" fill="#0ea5e9" /></BarChart></ResponsiveContainer></ChartBox></Section>}
+      {bySup.length > 0 && <Section title="Por fornecedor"><ChartBox height={220}><ResponsiveContainer><BarChart data={bySup}><XAxis dataKey="k" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="v" fill="#14b8a6" /></BarChart></ResponsiveContainer></ChartBox></Section>}
       <EntityManager entity="purchases" rows={rows} extraCols={[{ key: 't', label: 'Total', align: 'right', render: (r) => money(Number(r.qty) * Number(r.unitCost)) }]}
         filters={[{ key: 'supplier', label: 'Fornecedor', options: [...new Set(data.purchases.map((x) => x.supplier))] }, { key: 'unit', label: 'Unidade', options: data.units.map((u) => u.code) }]} />
     </Page>

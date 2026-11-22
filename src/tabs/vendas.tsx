@@ -27,7 +27,7 @@ export function Faturamento() {
       </Grid>
       <div className="flex gap-2" data-tour="filter">{(['dia', 'semana', 'mes', 'ano'] as const).map((x) => <button key={x} className={g === x ? 'btn-primary' : 'btn-ghost'} onClick={() => setG(x)}>{x === 'mes' ? 'mês' : x}</button>)}</div>
       <Section title={`Faturamento por ${g === 'mes' ? 'mês' : g}`}>
-        <ChartBox><ResponsiveContainer><BarChart data={rows}><CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="k" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" name="Faturamento" fill="#f97316" /></BarChart></ResponsiveContainer></ChartBox>
+        <ChartBox><ResponsiveContainer><BarChart data={rows}><CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="k" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" name="Faturamento" fill="#2563eb" /></BarChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={rows} filename={`faturamento-${g}`} cols={[{ key: 'k', label: 'Período' }, { key: 'revenue', label: 'Faturamento', align: 'right', render: (r) => money(r.revenue) }]} />
     </Page>
@@ -59,7 +59,7 @@ function Ranking({ asc }: { asc: boolean }) {
       {asc && <Notice>Produtos com baixa procura no período. Inclui itens do cadastro que não venderam. Venda baixa não significa, sozinha, que o item deve sair do cardápio: cruze com a margem em Engenharia de Cardápio.</Notice>}
       <div className="flex gap-2" data-tour="filter"><button className={by === 'qty' ? 'btn-primary' : 'btn-ghost'} onClick={() => setBy('qty')}>Por quantidade</button><button className={by === 'revenue' ? 'btn-primary' : 'btn-ghost'} onClick={() => setBy('revenue')}>Por receita</button></div>
       <Section title="Top 10">
-        <ChartBox><ResponsiveContainer><BarChart data={rows.slice(0, 10)} layout="vertical" margin={{ left: 80 }}><XAxis type="number" fontSize={11} /><YAxis type="category" dataKey="product" fontSize={11} width={140} /><Tooltip formatter={(v: any) => (by === 'revenue' ? money(Number(v)) : v)} /><Bar dataKey={by} fill={asc ? '#64748b' : '#f97316'} /></BarChart></ResponsiveContainer></ChartBox>
+        <ChartBox><ResponsiveContainer><BarChart data={rows.slice(0, 10)} layout="vertical" margin={{ left: 80 }}><XAxis type="number" fontSize={11} /><YAxis type="category" dataKey="product" fontSize={11} width={140} /><Tooltip formatter={(v: any) => (by === 'revenue' ? money(Number(v)) : v)} /><Bar dataKey={by} fill={asc ? '#64748b' : '#2563eb'} /></BarChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={rows} filename={asc ? 'menos-vendidos' : 'mais-vendidos'} cols={[
         { key: 'product', label: 'Produto' }, { key: 'qty', label: 'Quantidade', align: 'right' },
@@ -82,7 +82,7 @@ export function HorariosPico() {
       {h.coverage < 1 && <Notice tone="warn">{pct(h.coverage * 100)} das vendas do período têm horário registrado. As demais não entram nesta análise.</Notice>}
       {!h.rows.length ? <Empty>As vendas importadas não contêm horário individual. Importe um relatório com a coluna "Hora".</Empty> : <>
         <Section title="Faturamento e pedidos por hora">
-          <ChartBox><ResponsiveContainer><ComposedChart data={h.rows}><XAxis dataKey="hour" fontSize={11} /><YAxis yAxisId="a" fontSize={11} /><YAxis yAxisId="b" orientation="right" fontSize={11} /><Tooltip /><Legend /><Bar yAxisId="a" dataKey="revenue" name="Faturamento" fill="#f97316" /><Line yAxisId="b" dataKey="orders" name="Pedidos" stroke="#0ea5e9" /></ComposedChart></ResponsiveContainer></ChartBox>
+          <ChartBox><ResponsiveContainer><ComposedChart data={h.rows}><XAxis dataKey="hour" fontSize={11} /><YAxis yAxisId="a" fontSize={11} /><YAxis yAxisId="b" orientation="right" fontSize={11} /><Tooltip /><Legend /><Bar yAxisId="a" dataKey="revenue" name="Faturamento" fill="#2563eb" /><Line yAxisId="b" dataKey="orders" name="Pedidos" stroke="#14b8a6" /></ComposedChart></ResponsiveContainer></ChartBox>
         </Section>
         <DataTable rows={h.rows} filename="horarios" cols={[{ key: 'hour', label: 'Hora' }, { key: 'orders', label: 'Pedidos', align: 'right' }, { key: 'revenue', label: 'Faturamento', align: 'right', render: (r) => money(r.revenue) }]} />
       </>}
@@ -99,7 +99,7 @@ export function DiasMovimentados() {
     <Page actions={<PeriodPicker value={p} onChange={setP} />}>
       <Notice>A média por dia evita distorção quando o período tem quantidades diferentes de cada dia da semana.</Notice>
       <Section title="Média de faturamento por dia da semana">
-        <ChartBox><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="name" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="avg" name="Média" fill="#f97316" /></BarChart></ResponsiveContainer></ChartBox>
+        <ChartBox><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="name" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="avg" name="Média" fill="#2563eb" /></BarChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={rows} filename="dias-semana" cols={[{ key: 'name', label: 'Dia' }, { key: 'days', label: 'Dias com venda', align: 'right' }, { key: 'total', label: 'Total', align: 'right', render: (r) => money(r.total) }, { key: 'avg', label: 'Média', align: 'right', render: (r) => money(r.avg) }]} />
     </Page>
@@ -199,7 +199,7 @@ export function PrevisaoVendas() {
         <Kpi label="Tendência diária" value={money(f.slope!)} sub="variação média por dia" />
       </Grid>
       <Section title="Histórico e previsão">
-        <ChartBox><ResponsiveContainer><ComposedChart data={chart}><XAxis dataKey="date" fontSize={10} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => (Array.isArray(v) ? v.map((x) => money(x)).join(' a ') : money(Number(v)))} /><Area dataKey="band" fill="#fed7aa" stroke="none" name="Intervalo" /><Line dataKey="real" stroke="#0ea5e9" dot={false} name="Real" /><Line dataKey="forecast" stroke="#f97316" strokeDasharray="4 4" dot={false} name="Previsão" /></ComposedChart></ResponsiveContainer></ChartBox>
+        <ChartBox><ResponsiveContainer><ComposedChart data={chart}><XAxis dataKey="date" fontSize={10} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => (Array.isArray(v) ? v.map((x) => money(x)).join(' a ') : money(Number(v)))} /><Area dataKey="band" fill="#bfdbfe" stroke="none" name="Intervalo" /><Line dataKey="real" stroke="#14b8a6" dot={false} name="Real" /><Line dataKey="forecast" stroke="#2563eb" strokeDasharray="4 4" dot={false} name="Previsão" /></ComposedChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={f.rows} filename="previsao" cols={[{ key: 'date', label: 'Data' }, { key: 'forecast', label: 'Previsão', align: 'right', render: (r) => money(r.forecast) }, { key: 'low', label: 'Mínimo', align: 'right', render: (r) => money(r.low) }, { key: 'high', label: 'Máximo', align: 'right', render: (r) => money(r.high) }]} />
     </Page>

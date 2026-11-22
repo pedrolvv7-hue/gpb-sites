@@ -87,7 +87,7 @@ export function DespesasCategoria() {
     <Page actions={<PeriodPicker value={p} onChange={setP} />}>
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Distribuição no período"><ChartBox><ResponsiveContainer><PieChart><Pie data={rows.filter((r) => r.cur > 0)} dataKey="cur" nameKey="c" outerRadius={90} label={(e: any) => e.c}>{rows.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Pie><Tooltip formatter={(v: any) => money(Number(v))} /></PieChart></ResponsiveContainer></ChartBox></Section>
-        <Section title="Atual x anterior"><ChartBox><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="c" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Legend /><Bar dataKey="prev" name="Anterior" fill="#94a3b8" /><Bar dataKey="cur" name="Atual" fill="#f97316" /></BarChart></ResponsiveContainer></ChartBox></Section>
+        <Section title="Atual x anterior"><ChartBox><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="c" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Legend /><Bar dataKey="prev" name="Anterior" fill="#94a3b8" /><Bar dataKey="cur" name="Atual" fill="#2563eb" /></BarChart></ResponsiveContainer></ChartBox></Section>
       </div>
       <DataTable rows={rows} filename="despesas-categoria" cols={[{ key: 'c', label: 'Categoria' }, { key: 'cur', label: 'Atual', align: 'right', render: (r) => money(r.cur) }, { key: 'prev', label: 'Anterior', align: 'right', render: (r) => money(r.prev) }, { key: 'var', label: 'Variação', align: 'right', render: (r) => pct(r.var) }]} />
     </Page>

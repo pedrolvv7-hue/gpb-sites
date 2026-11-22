@@ -13,5 +13,5 @@
   .td { @apply whitespace-nowrap px-3 py-2 text-sm; }
 }
 body { @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100; }
-.tour-highlight { position: relative; z-index: 60; box-shadow: 0 0 0 4px #f97316, 0 0 0 9999px rgba(0,0,0,.45); border-radius: 10px; }
+.tour-highlight { position: relative; z-index: 60; box-shadow: 0 0 0 4px #2563eb, 0 0 0 9999px rgba(0,0,0,.45); border-radius: 10px; }
 @media print { aside, header, .no-print { display: none !important; } main { padding: 0 !important; } }

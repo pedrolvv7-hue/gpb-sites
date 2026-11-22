@@ -195,7 +195,7 @@ export const Badge = ({ children, tone = 'slate' }: { children: ReactNode; tone?
   return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${c}`}>{children}</span>
 }
 
-export const CHART_COLORS = ['#f97316', '#0ea5e9', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#64748b']
+export const CHART_COLORS = ['#2563eb', '#14b8a6', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#64748b']
 
 export function ChartBox({ children, height = 260 }: { children: ReactNode; height?: number }) {
   return <div data-tour="chart" style={{ height }} className="w-full">{children}</div>

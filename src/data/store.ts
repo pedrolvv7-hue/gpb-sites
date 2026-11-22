@@ -81,7 +81,7 @@ export const defaultSettings: Settings = {
   autopilotMode: 'aprovacao',
   thresholds: { salesDropPct: 20, minMarginPct: 55, expiryDays: 5, staleDays: 7, expenseZ: 2, docDays: 30 },
   loyalty: { pointsPerReal: 1, rewardPoints: 200, rewardLabel: 'Sobremesa grátis', enabled: false },
-  menuTheme: { color: '#f97316', title: 'Nosso cardápio' },
+  menuTheme: { color: '#2563eb', title: 'Nosso cardápio' },
   generativeAI: false,
 }
 

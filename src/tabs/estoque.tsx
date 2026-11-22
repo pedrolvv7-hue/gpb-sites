@@ -60,7 +60,7 @@ export function PrevisaoReposicao() {
       <Notice>Consumo médio diário dos últimos 30 dias de vendas x fichas técnicas. Dias restantes = estoque teórico ÷ consumo diário. Estimativa: depende da precisão das fichas e contagens.</Notice>
       <Section title="Dias de estoque restantes">
         <ChartBox><ResponsiveContainer><BarChart data={rows.filter((r) => r.daysLeft != null).sort((a, b) => a.daysLeft! - b.daysLeft!).slice(0, 15).map((r) => ({ ...r, d: Math.max(0, +r.daysLeft!.toFixed(1)) }))} layout="vertical" margin={{ left: 60 }}>
-          <XAxis type="number" fontSize={11} /><YAxis type="category" dataKey="ingredient" fontSize={11} width={130} /><Tooltip /><Bar dataKey="d" name="Dias" fill="#0ea5e9" /></BarChart></ResponsiveContainer></ChartBox>
+          <XAxis type="number" fontSize={11} /><YAxis type="category" dataKey="ingredient" fontSize={11} width={130} /><Tooltip /><Bar dataKey="d" name="Dias" fill="#14b8a6" /></BarChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={rows} filename="previsao-reposicao" cols={[
         { key: 'ingredient', label: 'Ingrediente' }, { key: 'current', label: 'Estoque', align: 'right', render: (r) => `${q(r.current)} ${r.measure}` },
@@ -140,7 +140,7 @@ export function ConsumoIngredientes() {
   return (
     <Page actions={<PeriodPicker value={p} onChange={setP} />}>
       <Notice>Consumo teórico = pratos vendidos x ficha técnica. Vendas canceladas e devolvidas ({cancelled} linha(s) no período) não descontam ingredientes. Modificadores de pedido (ex.: "sem cebola") só são considerados quando importados como itens próprios.</Notice>
-      <Section title="Consumo x compras no período"><ChartBox><ResponsiveContainer><BarChart data={rows.slice(0, 12)}><XAxis dataKey="ingredient" fontSize={10} interval={0} angle={-25} textAnchor="end" height={70} /><YAxis fontSize={10} /><Tooltip /><Legend /><Bar dataKey="used" name="Consumo" fill="#f97316" /><Bar dataKey="bought" name="Compras" fill="#0ea5e9" /></BarChart></ResponsiveContainer></ChartBox></Section>
+      <Section title="Consumo x compras no período"><ChartBox><ResponsiveContainer><BarChart data={rows.slice(0, 12)}><XAxis dataKey="ingredient" fontSize={10} interval={0} angle={-25} textAnchor="end" height={70} /><YAxis fontSize={10} /><Tooltip /><Legend /><Bar dataKey="used" name="Consumo" fill="#2563eb" /><Bar dataKey="bought" name="Compras" fill="#14b8a6" /></BarChart></ResponsiveContainer></ChartBox></Section>
       <DataTable rows={rows} filename="consumo" cols={[{ key: 'ingredient', label: 'Ingrediente' }, { key: 'used', label: 'Consumo', align: 'right', render: (r) => `${q(r.used)} ${r.measure}` }, { key: 'bought', label: 'Comprado', align: 'right', render: (r) => q(r.bought) }, { key: 'cost', label: 'Custo consumido', align: 'right', render: (r) => money(r.cost) }]} />
     </Page>
   )

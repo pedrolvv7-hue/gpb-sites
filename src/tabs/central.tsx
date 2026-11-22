@@ -52,7 +52,7 @@ export function VisaoGeral() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Section title="Evolução do faturamento diário">
-            <ChartBox><ResponsiveContainer><LineChart data={daily}><CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="date" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Line dataKey="revenue" name="Faturamento" stroke="#f97316" dot={false} strokeWidth={2} /></LineChart></ResponsiveContainer></ChartBox>
+            <ChartBox><ResponsiveContainer><LineChart data={daily}><CartesianGrid strokeDasharray="3 3" opacity={0.3} /><XAxis dataKey="date" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Line dataKey="revenue" name="Faturamento" stroke="#2563eb" dot={false} strokeWidth={2} /></LineChart></ResponsiveContainer></ChartBox>
           </Section>
         </div>
         <Section title={`Alertas abertos (${alerts.length})`} actions={<Link className="text-sm text-brand-600" to="/alertas">Ver todos</Link>}>
@@ -193,7 +193,7 @@ export function Anomalias() {
         <input type="range" min={1.5} max={4} step={0.5} value={lim} onChange={(e) => setLim(Number(e.target.value))} className="w-full" /></label>
       <Section title="Faturamento diário com dias anômalos">
         <ChartBox><ResponsiveContainer><LineChart data={daily}><XAxis dataKey="date" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} />
-          <Line dataKey="revenue" stroke="#0ea5e9" dot={false} />{rows.filter((r) => r.id.startsWith('rev')).map((r) => <ReferenceLine key={r.id} x={r.date} stroke="#ef4444" strokeDasharray="3 3" />)}
+          <Line dataKey="revenue" stroke="#14b8a6" dot={false} />{rows.filter((r) => r.id.startsWith('rev')).map((r) => <ReferenceLine key={r.id} x={r.date} stroke="#ef4444" strokeDasharray="3 3" />)}
         </LineChart></ResponsiveContainer></ChartBox>
       </Section>
       <DataTable rows={rows} filename="anomalias" empty={<Empty>Nenhuma anomalia. São necessárias ao menos 3 semanas de vendas ou 4 meses de despesas.</Empty>} cols={[
@@ -264,7 +264,7 @@ export function Relatorios() {
           <Kpi label="CMV" value={money(op.cmv)} sub={`cobertura ${pct(op.cmvCoverage)}`} />
           <Kpi label="Resultado estimado" value={money(op.result)} />
         </Grid>
-        <ChartBox height={200}><ResponsiveContainer><BarChart data={daily}><XAxis dataKey="date" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" fill="#f97316" /></BarChart></ResponsiveContainer></ChartBox>
+        <ChartBox height={200}><ResponsiveContainer><BarChart data={daily}><XAxis dataKey="date" fontSize={10} /><YAxis fontSize={10} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" fill="#2563eb" /></BarChart></ResponsiveContainer></ChartBox>
         <div className="grid gap-4 md:grid-cols-2">
           <div><h4 className="font-semibold">Top 5 produtos por receita</h4><ol className="list-decimal pl-5 text-sm">{[...pp].sort((a, b) => b.revenue - a.revenue).slice(0, 5).map((r) => <li key={r.product}>{r.product}: {money(r.revenue)}</li>)}</ol></div>
           <div><h4 className="font-semibold">Alertas abertos ({alerts.length})</h4><ul className="list-disc pl-5 text-sm">{alerts.slice(0, 6).map((a) => <li key={a.id}>{a.title}</li>)}</ul></div>

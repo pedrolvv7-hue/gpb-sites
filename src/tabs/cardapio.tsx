@@ -10,7 +10,7 @@ export function EngenhariaCardapio() {
   const data = useData()
   const [p, setP] = usePeriod()
   const rows = useMemo(() => menuEngineering(data, p), [data, p])
-  const color: Record<string, string> = { Estrela: '#10b981', 'Burro de carga': '#0ea5e9', 'Quebra-cabeça': '#eab308', Cão: '#ef4444' }
+  const color: Record<string, string> = { Estrela: '#10b981', 'Burro de carga': '#14b8a6', 'Quebra-cabeça': '#eab308', Cão: '#ef4444' }
   const advice: Record<string, string> = { Estrela: 'Manter qualidade e destaque.', 'Burro de carga': 'Popular, mas com contribuição baixa: revisar custo ou preço.', 'Quebra-cabeça': 'Boa contribuição, pouca venda: testar divulgação ou posição no cardápio.', Cão: 'Baixa venda e contribuição: analisar se vale manter.' }
   if (!rows.length) return <Page><Empty action={{ to: '/fichas-tecnicas', label: 'Cadastrar fichas técnicas' }}>São necessárias vendas e fichas técnicas com custo para montar a matriz.</Empty></Page>
   return (
@@ -183,7 +183,7 @@ export function AnalisePrecos() {
       ]} />
       {items.length > 0 && (
         <Section title="Evolução" actions={<select className="input w-auto" value={sel} onChange={(e) => setSel(e.target.value)}>{items.map((i) => <option key={i}>{i}</option>)}</select>}>
-          <ChartBox height={220}><ResponsiveContainer><LineChart data={series}><XAxis dataKey="date" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Line dataKey="value" stroke="#f97316" /></LineChart></ResponsiveContainer></ChartBox>
+          <ChartBox height={220}><ResponsiveContainer><LineChart data={series}><XAxis dataKey="date" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Line dataKey="value" stroke="#2563eb" /></LineChart></ResponsiveContainer></ChartBox>
         </Section>
       )}
     </Page>

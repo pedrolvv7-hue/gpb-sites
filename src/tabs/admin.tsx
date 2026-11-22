@@ -188,7 +188,7 @@ export function ComparacaoUnidades() {
   return (
     <Page actions={<PeriodPicker value={p} onChange={setP} />}>
       <Notice>Indicadores proporcionais (ticket, margem %, despesas % do faturamento, faturamento por lugar) permitem comparar unidades de tamanhos diferentes.</Notice>
-      <Section title="Faturamento por unidade"><ChartBox height={220}><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="unit" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" fill="#f97316" /></BarChart></ResponsiveContainer></ChartBox></Section>
+      <Section title="Faturamento por unidade"><ChartBox height={220}><ResponsiveContainer><BarChart data={rows}><XAxis dataKey="unit" fontSize={11} /><YAxis fontSize={11} /><Tooltip formatter={(v: any) => money(Number(v))} /><Bar dataKey="revenue" fill="#2563eb" /></BarChart></ResponsiveContainer></ChartBox></Section>
       <DataTable rows={rows} filename="comparacao-unidades" cols={[
         { key: 'unit', label: 'Unidade' }, { key: 'revenue', label: 'Faturamento', align: 'right', render: (r) => money(r.revenue) }, { key: 'var', label: 'Variação', align: 'right', render: (r) => pct(r.var) },
         { key: 'orders', label: 'Pedidos', align: 'right', render: (r) => r.orders ?? 'n/d' }, { key: 'ticket', label: 'Ticket', align: 'right', render: (r) => (r.ticket ? money(r.ticket) : 'n/d') },
