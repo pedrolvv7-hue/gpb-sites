@@ -7,9 +7,11 @@ import { Card, Empty, Notice, Spinner, StatusChip, Tabs, TeamDot, useNow, DemoBa
 import { VideoSource } from '../components/VideoSource'
 import { Court, PlayerMarker } from '../components/Court'
 import { loadCocoSsd, type ObjectDetector, type ModelStatus } from '../vision/detector'
+import { loadMoveNet, SKELETON, MOVEMENT_LABEL, SPORT_MOVEMENTS, type PoseDetector } from '../vision/pose'
 import { CameraPipeline, type FrameResult } from '../vision/pipeline'
 import { ENGINES } from '../sports'
 import { addCandidate, correctEvent, initialStatus, manualEvent, matchTime, scoreOf, setStatus } from '../events/eventLog'
+import { eventLabel } from '../vision/pose'
 import { fmtClock } from '../lib/util'
 import { RingRecorder, clipStore } from '../replay/ringRecorder'
 import { detectCapabilities } from '../lib/capabilities'
@@ -41,6 +43,10 @@ export default function Live() {
   const [busyClip, setBusyClip] = useState(false)
   const now = useNow(250)
   const detector = useRef<ObjectDetector | null>(null)
+  const poseDet = useRef<PoseDetector | null>(null)
+  const [poseStatus, setPoseStatus] = useState<'carregando' | 'pronto' | 'erro'>('carregando')
+  const userPaused = useRef(false)
+  const fileIn = useRef<HTMLInputElement>(null)
   const pipes = useRef(new Map<string, CameraPipeline>())
   const videos = useRef(new Map<string, HTMLVideoElement>())
   const posBuf = useRef<PositionSample[]>([])
@@ -56,7 +62,18 @@ export default function Live() {
   async function loadModel() {
     setModelStatus('carregando'); setModelErr('')
     try { detector.current = await loadCocoSsd(settings.aiProfile === 'avancado' ? 'mobilenet_v2' : 'lite_mobilenet_v2'); setModelStatus('pronto') }
-    catch (e) { setModelStatus('erro'); setModelErr(e instanceof Error ? e.message : 'Falha ao carregar o modelo. Verifique a conexão no primeiro uso.') }
+    catch (e) { setModelStatus('erro'); setModelErr(e instanceof Error ? e.message : 'Falha ao carregar o modelo. Verifique a conexão no primeiro uso.'); return }
+    // modelo de pose: se falhar, a análise continua sem movimentos do corpo
+    try { poseDet.current = await loadMoveNet(); setPoseStatus('pronto') } catch (e) { setPoseStatus('erro'); console.warn('pose indisponível', e) }
+  }
+  // carrega a IA automaticamente quando houver câmera e inicia a análise assim que estiver pronta
+  useEffect(() => { if (sources.length && modelStatus === 'nao_carregado') loadModel() }, [sources.length])
+  useEffect(() => { if (modelStatus === 'pronto' && sources.length && !analyzing && !userPaused.current) startAnalysis() }, [modelStatus, sources.length])
+  function startAnalysis() {
+    userPaused.current = false
+    const c = get()
+    if (c && c.state === 'configurando') update((x) => ({ ...x, state: 'ao_vivo', clockRunning: true, clockStartedAt: Date.now() }))
+    setAnalyzing(true)
   }
 
   // ---------- laço de análise (round-robin entre câmeras, frequência adaptativa) ----------
@@ -73,6 +90,7 @@ export default function Live() {
         let p = pipes.current.get(src.id)
         if (!p) { p = new CameraPipeline(src.id, detector.current!, cur, cur.calibrations[src.id]); pipes.current.set(src.id, p) }
         p.calib = cur.calibrations[src.id]
+        p.pose = poseDet.current
         const t = matchTime(cur)
         try {
           const r = await p.process(v, cur, t, settings.detectScore)
@@ -109,7 +127,7 @@ export default function Live() {
     for (const c of cands) {
       const cams = new Set(c.evidences.map((e) => e.cameraId))
       const status = initialStatus(c.scoring, c.confidence, cur.scoringMode, settings.thresholds, cams.size >= 2)
-      const r = addCandidate(cur, { ...c, status, origin: cur.demo ? 'demo' : 'ia' })
+      const r = addCandidate(cur, { ...c, status, origin: cur.demo ? 'demo' : 'ia' }, c.type.startsWith('mov_') ? 0 : 4000)
       cur = r.match
       // fusão: se outra câmera já tinha o mesmo evento, reavaliar com concordância multicâmera
       if (r.merged && cur.scoringMode === 'automatico_experimental') {
@@ -221,12 +239,24 @@ export default function Live() {
         {modelStatus === 'erro' && <><span className="text-live">Modelo não carregado: {modelErr}</span><button className="btn-ghost btn-sm" onClick={loadModel}>Tentar novamente</button><span className="text-muted">O placar manual continua funcionando.</span></>}
         {modelStatus === 'pronto' && <>
           <span className="chip bg-neon/20 text-neon">{detector.current?.name} · {detector.current?.backend}</span>
-          <button className={analyzing ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'} onClick={() => setAnalyzing(!analyzing)} disabled={!sources.length}>{analyzing ? 'Pausar análise' : 'Iniciar análise'}</button>
+          <button className={analyzing ? 'btn-ghost btn-sm' : 'btn-primary btn-sm'} onClick={() => { if (analyzing) { userPaused.current = true; setAnalyzing(false) } else startAnalysis() }} disabled={!sources.length}>{analyzing ? 'Pausar análise' : 'Iniciar análise'}</button>
+          <span className={`chip ${poseStatus === 'pronto' ? 'bg-neon/20 text-neon' : poseStatus === 'erro' ? 'bg-live/20 text-live' : 'bg-line text-muted'}`}>Pose: {poseStatus === 'pronto' ? 'MoveNet ativo' : poseStatus === 'erro' ? 'indisponível' : 'carregando…'}</span>
           {[...pipes.current.values()].map((p) => <span key={p.cameraId} className="text-muted">{sources.find((s) => s.id === p.cameraId)?.name ?? p.cameraId}: {p.stats.effectiveFps.toFixed(1)} inf/s · {p.stats.avgInferMs.toFixed(0)} ms</span>)}
         </>}
         <span className="ml-auto text-muted">Modo: {m.scoringMode === 'assistido' ? 'assistido' : 'automático experimental'}</span>
       </div>
-      {!sources.length && <Notice kind="warn">Nenhuma câmera ativa. <Link to={`/partida/${m.id}/cameras`} className="text-blue underline">Conectar câmeras</Link>. Sem câmera, use o controle manual para registrar o placar.</Notice>}
+      {!sources.length && <div className="card space-y-2 border-pend p-4">
+        <p className="font-semibold">Escolha a imagem que a IA vai analisar</p>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-primary" onClick={() => sess.addWebcam()}>Usar a câmera deste dispositivo</button>
+          <button className="btn-ghost" onClick={() => fileIn.current?.click()}>Enviar vídeo gravado</button>
+          <Link to={`/partida/${m.id}/cameras`} className="btn-ghost">Conectar celulares</Link>
+        </div>
+        <input ref={fileIn} type="file" accept="video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) sess.addFile(f); e.target.value = '' }} />
+        {sess.error && <Notice kind="error">{sess.error}</Notice>}
+        <p className="text-xs text-muted">A IA carrega e começa sozinha assim que houver imagem. O placar manual funciona mesmo sem câmera.</p>
+      </div>}
+      {analyzing && !m.clockRunning && <Notice kind="warn">A partida está pausada: a IA continua mostrando detecções, mas só registra acontecimentos com o relógio rodando. Toque em Retomar.</Notice>}
       {sources.length > 0 && !sources.some((s) => m.calibrations[s.id]?.H) && <Notice kind="info">Calibração necessária para mapa tático, posse, distâncias e velocidades. <Link to={`/partida/${m.id}/calibrar`} className="text-blue underline">Calibrar agora</Link></Notice>}
 
       <Tabs value={view} onChange={setView} items={[{ id: 'video', label: 'Vídeo em destaque' }, { id: 'multi', label: 'Multicâmeras' }, { id: 'stats', label: 'Estatísticas' }, { id: 'mapa', label: 'Mapa tático' }, { id: 'arbitragem', label: 'Arbitragem' }]} />
@@ -247,7 +277,7 @@ export default function Live() {
             {auto && directorReason && <span className="text-muted">Motivo: {directorReason}</span>}
           </div>}
           {(view === 'video' || view === 'multi') && <div className="flex flex-wrap gap-1 text-xs">
-            {(Object.keys(ov) as (keyof typeof ov)[]).map((k) => <button key={k} onClick={() => toggleOv(k)} className={`btn-sm rounded border px-2 ${ov[k] ? 'border-blue text-fg' : 'border-line text-muted'}`}>{ov[k] ? <Eye size={12} /> : <EyeOff size={12} />}{{ boxes: 'Caixas', labels: 'IDs', teams: 'Cores', ball: 'Bola', trails: 'Trajetória', court: 'Linhas calibradas', confidence: 'Confiança' }[k]}</button>)}
+            {(Object.keys(ov) as (keyof typeof ov)[]).map((k) => <button key={k} onClick={() => toggleOv(k)} className={`btn-sm rounded border px-2 ${ov[k] ? 'border-blue text-fg' : 'border-line text-muted'}`}>{ov[k] ? <Eye size={12} /> : <EyeOff size={12} />}{{ boxes: 'Caixas', labels: 'IDs', teams: 'Cores', ball: 'Bola', trails: 'Trajetória', court: 'Linhas calibradas', confidence: 'Confiança', pose: 'Esqueleto' }[k]}</button>)}
           </div>}
           {view === 'mapa' && <Card title="Mapa tático">
             <TacticalMap match={m} results={results} sel={selTrack} onSel={setSelTrack} />
@@ -267,7 +297,7 @@ export default function Live() {
             {!pending.length && <p className="text-sm text-muted">Nenhum acontecimento pendente.</p>}
             {pending.slice(-6).reverse().map((e) => (
               <div key={e.id} className="mb-2 rounded-lg border border-pend/40 bg-pend/5 p-2 text-sm">
-                <div className="flex justify-between"><b>{e.type}</b><span className="font-mono text-xs">{fmtClock(e.t)}</span></div>
+                <div className="flex justify-between"><b>{eventLabel(e.type)}</b><span className="font-mono text-xs">{fmtClock(e.t)}</span></div>
                 <p className="text-xs text-muted">{e.note ?? e.evidences[0]?.detail} · confiança interna {(e.confidence * 100).toFixed(0)}% · câmeras: {[...new Set(e.evidences.map((x) => x.cameraId))].length}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-1">
                   <select aria-label="Equipe" className="input w-28 py-1" value={e.team ?? ''} onChange={(ev) => update((x) => correctEvent(x, e.id, { team: ev.target.value as TeamSide }))}><option value="">Equipe?</option><option value="A">{m.teams.A.name}</option><option value="B">{m.teams.B.name}</option></select>
@@ -290,7 +320,7 @@ export default function Live() {
           </Card>
           <Card title="Linha do tempo" action={<Link className="text-xs text-blue" to={`/partida/${m.id}/eventos`}>Central de acontecimentos</Link>}>
             <ul className="max-h-64 space-y-1 overflow-y-auto text-xs">
-              {[...m.events].reverse().slice(0, 30).map((e) => <li key={e.id} className="flex items-center gap-2"><span className="font-mono text-muted">{fmtClock(e.t)}</span>{e.team && <TeamDot side={e.team} color={m.teams[e.team].primaryColor} />}<span>{e.type}{e.points && e.scoring ? ` +${e.points}` : ''}</span><span className="ml-auto"><StatusChip s={e.status} /></span></li>)}
+              {[...m.events].reverse().slice(0, 30).map((e) => <li key={e.id} className="flex items-center gap-2"><span className="font-mono text-muted">{fmtClock(e.t)}</span>{e.team && <TeamDot side={e.team} color={m.teams[e.team].primaryColor} />}<span>{eventLabel(e.type)}{e.playerId ? ` · ${e.playerId}` : ''}{e.points && e.scoring ? ` +${e.points}` : ''}</span><span className="ml-auto"><StatusChip s={e.status} /></span></li>)}
               {!m.events.length && <li className="text-muted">Sem acontecimentos.</li>}
             </ul>
           </Card>
@@ -321,6 +351,7 @@ function OverlayVideo({ src, res, match, ov, sel, onSelect, register }: { src: S
         {ov.court && cal?.net && <line x1={cal.net.left.x * 100} y1={cal.net.left.y * 100} x2={cal.net.right.x * 100} y2={cal.net.right.y * 100} stroke="#fff" strokeWidth={0.5} />}
         {res?.tracks.map((t) => ov.boxes && <rect key={t.id} x={t.box.x * 100} y={t.box.y * 100} width={t.box.w * 100} height={t.box.h * 100} fill="transparent" stroke={ov.teams ? color(t.team) : '#fff'} strokeWidth={sel === t.label ? 3 : 1.5} vectorEffect="non-scaling-stroke" strokeDasharray={t.misses ? '4 3' : undefined} />)}
         {ov.trails && res && <polyline points={res.trail.filter((p) => p.observed).map((p) => `${p.x * 100},${p.y * 100}`).join(' ')} fill="none" stroke="#fde047" strokeWidth={2} vectorEffect="non-scaling-stroke" opacity={0.8} />}
+        {ov.pose && res?.poses.map((po, i) => <g key={'p' + i}>{SKELETON.map(([a, b]) => po.pose[a].s > 0.3 && po.pose[b].s > 0.3 && <line key={a + b} x1={po.pose[a].x * 100} y1={po.pose[a].y * 100} x2={po.pose[b].x * 100} y2={po.pose[b].y * 100} stroke="#22C55E" strokeWidth={2} vectorEffect="non-scaling-stroke" />)}</g>)}
         {ov.ball && res?.ball && <ellipse cx={res.ball.x * 100} cy={res.ball.y * 100} rx={1.4} ry={2.2} fill="none" stroke={res.ballState === 'estimada' ? '#F59E0B' : '#fde047'} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeDasharray={res.ballState === 'estimada' ? '4 3' : undefined} />}
       </svg>
       {res?.tracks.map((t) => (
@@ -352,7 +383,8 @@ function TacticalMap({ match, results, sel, onSel }: { match: Match; results: Re
 }
 
 export function StatsTable({ match }: { match: Match }) {
-  const rows = ENGINES[match.sport].teamStats(match)
+  const mv = (team?: 'A' | 'B') => (k: string) => match.events.filter((e) => e.type === 'mov_' + k && e.status !== 'rejeitado' && (team ? e.team === team : !e.team)).length
+  const rows = [...ENGINES[match.sport].teamStats(match), ...SPORT_MOVEMENTS[match.sport].map((k) => ({ label: `${MOVEMENT_LABEL[k]} (IA de pose)`, A: mv('A')(k), B: mv('B')(k), note: mv()(k) ? `+${mv()(k)} de jogadores com equipe indefinida` : undefined }))]
   return (
     <div className="card overflow-x-auto">
       <table className="w-full text-sm">

@@ -14,13 +14,13 @@ export interface Settings {
   recordingAllowed: boolean
   retentionDays: number
   reducedMotion: boolean
-  overlays: Record<'boxes' | 'labels' | 'teams' | 'ball' | 'trails' | 'court' | 'confidence', boolean>
+  overlays: Record<'boxes' | 'labels' | 'teams' | 'ball' | 'trails' | 'court' | 'confidence' | 'pose', boolean>
 }
 
 export const defaultSettings: Settings = {
   theme: 'dark', aiProfile: 'equilibrado', inferFps: 8, detectScore: 0.35, thresholds: { auto: 0.85, min: 0.2 }, replaySeconds: 20,
   recordingAllowed: false, retentionDays: 7, reducedMotion: false,
-  overlays: { boxes: true, labels: true, teams: true, ball: true, trails: true, court: true, confidence: true },
+  overlays: { boxes: true, labels: true, teams: true, ball: true, trails: true, court: true, confidence: true, pose: true },
 }
 
 interface State {
@@ -46,7 +46,7 @@ export const useStore = create<State>()(persist((set) => ({
   deleteMatch: (id) => set((s) => { const c = { ...s.matches }; delete c[id]; return { matches: c } }),
   deleteAll: () => set({ matches: {} }),
   setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
-}), { name: 'ssai-real', storage, version: 1 }))
+}), { name: 'ssai-real', storage, version: 2, migrate: (st) => { const x = st as State; x.settings = { ...defaultSettings, ...x.settings, overlays: { ...defaultSettings.overlays, ...x.settings?.overlays } }; return x } }))
 
 /** Armazenamento exclusivo do modo demonstração (memória da sessão). */
 export const useDemo = create<{ matches: Record<string, Match>; save: (m: Match) => void; clear: () => void }>((set) => ({

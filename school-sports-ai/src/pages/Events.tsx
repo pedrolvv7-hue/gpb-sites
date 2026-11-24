@@ -6,6 +6,7 @@ import { useMatch, useStore, useDemo } from '../store/store'
 import { Card, Empty, Notice, StatusChip, TeamDot, DemoBanner } from '../components/ui'
 import { correctEvent, setStatus } from '../events/eventLog'
 import { clipStore } from '../replay/ringRecorder'
+import { eventLabel } from '../vision/pose'
 import { fmtClock, download } from '../lib/util'
 import type { EventStatus, Match, SportEvent, TeamSide } from '../lib/types'
 
@@ -31,7 +32,7 @@ export default function Events() {
       {m.demo && <DemoBanner />}
       <div className="flex flex-wrap items-end justify-between gap-2"><div><h1 className="h1">Central de acontecimentos</h1><p className="text-sm text-muted">{m.name}</p></div><Link className="btn-ghost btn-sm" to={`/partida/${m.id}/ao-vivo`}>Voltar ao vivo</Link></div>
       <div className="card flex flex-wrap gap-2 p-3">
-        <select className="input w-40" value={type} onChange={(e) => setType(e.target.value)} aria-label="Tipo"><option value="">Todos os tipos</option>{types.map((t) => <option key={t}>{t}</option>)}</select>
+        <select className="input w-40" value={type} onChange={(e) => setType(e.target.value)} aria-label="Tipo"><option value="">Todos os tipos</option>{types.map((t) => <option key={t} value={t}>{eventLabel(t)}</option>)}</select>
         <select className="input w-40" value={team} onChange={(e) => setTeam(e.target.value)} aria-label="Equipe"><option value="">Todas as equipes</option><option value="A">{m.teams.A.name}</option><option value="B">{m.teams.B.name}</option></select>
         <select className="input w-48" value={status} onChange={(e) => setStatusF(e.target.value)} aria-label="Estado"><option value="">Todos os estados</option>{(['aguardando', 'detectado', 'confirmado_auto', 'confirmado_manual', 'corrigido', 'rejeitado', 'indeterminado'] as EventStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}</select>
         <label className="flex items-center gap-2 text-xs">Confiança mín. <input type="range" min={0} max={1} step={0.05} value={minConf} onChange={(e) => setMinConf(+e.target.value)} />{Math.round(minConf * 100)}%</label>
@@ -43,14 +44,14 @@ export default function Events() {
             <button key={e.id} onClick={() => { setSel(e.id); setNote(e.note ?? '') }} className={`card flex w-full items-center gap-2 p-2 text-left text-sm ${sel === e.id ? 'border-blue' : ''}`}>
               <span className="font-mono text-xs text-muted">{fmtClock(e.t)}</span><span className="text-xs text-muted">P{e.period}</span>
               {e.team && <TeamDot side={e.team} color={m.teams[e.team].primaryColor} />}
-              <span className="flex-1">{e.type}{e.scoring && e.points ? ` (+${e.points})` : ''}{e.playerId ? ` · ${e.playerId}` : ''}</span>
+              <span className="flex-1">{eventLabel(e.type)}{e.scoring && e.points ? ` (+${e.points})` : ''}{e.playerId ? ` · ${e.playerId}` : ''}</span>
               {e.clipId && <Film size={12} className="text-blue" />}
               <StatusChip s={e.status} />
             </button>
           ))}
         </div>
         <div className="lg:col-span-3">
-          {!ev ? <Empty title="Selecione um acontecimento para revisar" /> : <Card title={<>School VAR · {ev.type}</>}>
+          {!ev ? <Empty title="Selecione um acontecimento para revisar" /> : <Card title={<>School VAR · {eventLabel(ev.type)}</>}>
             <Notice kind="warn">Ferramenta de apoio. Linhas exibidas são aproximações da calibração; não é tecnologia oficial certificada de arbitragem.</Notice>
             <div className="mt-3"><ReplayViewer ev={ev} /></div>
             <dl className="mt-3 grid grid-cols-2 gap-1 text-xs">

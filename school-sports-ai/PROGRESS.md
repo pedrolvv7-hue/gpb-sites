@@ -29,6 +29,14 @@ Critério: um item só é "funcional" quando lógica, integração com a interfa
 | 11 Qualidade | Parcial | 42 testes unitários dos núcleos; e2e manual via Playwright. Acessibilidade: foco visível, rótulos, equipes com forma + letra além de cor, movimento reduzido. Faltam testes e2e automatizados no repositório e auditoria completa de acessibilidade. |
 | 12 Publicação | Pronto para deploy | README, `.env.example`, `vercel.json`, PWA com service worker, migração SQL com RLS. Deploy não foi executado nesta sessão. |
 
+## Atualização: IA de movimentos (pose)
+
+- MoveNet MultiPose Lightning (Apache-2.0), pesos hospedados no próprio site (`public/models/movenet-multipose/`, do pacote npm `@vladmandic/human-models`, MIT), sem depender do TF Hub.
+- Classificador temporal por jogador (`src/vision/pose.ts`) com regras geométricas explícitas: salto, braços levantados, flexão de joelhos, chute, queda, deslocamento rápido, arremesso, drible, bloqueio, manchete, toque/levantamento, golpe por cima, cortada. Filtrados por esporte. 13 testes com poses sintéticas, incluindo casos que não devem disparar.
+- Movimentos entram como "detectado", com jogador e equipe, e nunca alteram o placar.
+- A central ao vivo permite adicionar câmera/vídeo diretamente, carrega a IA e inicia a análise sozinha.
+- Verificado no Chromium com vídeo real de pedestres: esqueletos desenhados, sem falsos saltos após correção. Não validado com vídeos esportivos escolares.
+
 ## Bloqueado por dependências externas
 
 - Validação dos detectores com vídeos escolares anotados (precisão, revocação, falsos positivos): **não há conjunto de dados**; nenhum número de desempenho foi publicado ou inventado.

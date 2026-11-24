@@ -7,6 +7,8 @@ import type { ObjectDetector } from './detector'
 import { applyH, footPoint } from '../calibration/homography'
 import { ENGINES } from '../sports'
 import type { Candidate, Detector } from '../sports/engine'
+import { iou } from '../tracking/tracker'
+import { MovementClassifier, SPORT_MOVEMENTS, MOVEMENT_LABEL, type PoseDetector, type PoseObs } from './pose'
 
 export interface FrameResult {
   tracks: Track[]
@@ -17,6 +19,8 @@ export interface FrameResult {
   inferMs: number
   candidates: Candidate[]
   courtPlayers: { label: string; team: string; x: number; y: number; estimated: boolean }[]
+  poses: PoseObs[]
+  poseMs: number
 }
 
 export class CameraPipeline {
@@ -28,6 +32,9 @@ export class CameraPipeline {
   private ctx2d = this.canvas.getContext('2d', { willReadFrequently: true })!
   stats = { frames: 0, avgInferMs: 0, lastInferAt: 0, effectiveFps: 0 }
   private lastSampleT = -1e9
+  pose: PoseDetector | null = null
+  private moves = new Map<number, MovementClassifier>()
+  private sport: Match['sport']
 
   constructor(public cameraId: string, private detector: ObjectDetector, match: Match, public calib?: CameraCalibration) {
     const tA = match.teams.A, tB = match.teams.B
@@ -36,6 +43,7 @@ export class CameraPipeline {
       { team: 'B', colors: [tB.primaryColor, tB.secondaryColor ?? '', tB.keeperColor ?? ''] },
     ])
     this.sportDet = ENGINES[match.sport].createDetector()
+    this.sport = match.sport
   }
 
   /** Filtro de área de jogo: exige pés dentro da quadra calibrada (+1 m de margem). */
@@ -75,12 +83,32 @@ export class CameraPipeline {
       players: visible.map((tr) => ({ label: tr.label, team: tr.team, foot: footPoint(tr.box), court: this.calib?.H ? applyH(this.calib.H, footPoint(tr.box)) : undefined })),
       calibration: this.calib,
     })
+    // pose e movimentos (não dependem de bola nem de calibração)
+    let poses: PoseObs[] = [], poseMs = 0
+    if (this.pose) {
+      const p0 = performance.now()
+      try { poses = await this.pose.detect(video) } catch { poses = [] }
+      poseMs = performance.now() - p0
+      for (const po of poses) {
+        if (po.box.w <= 0) continue
+        let best: Track | null = null, bs = 0.05
+        for (const tr of visible) { const s2 = iou(tr.box, po.box); if (s2 > bs) { bs = s2; best = tr } }
+        if (!best) continue
+        let mc = this.moves.get(best.id)
+        if (!mc) { mc = new MovementClassifier(SPORT_MOVEMENTS[this.sport]); this.moves.set(best.id, mc) }
+        for (const mv of mc.step(t, po.pose)) {
+          candidates.push({ type: `mov_${mv.m}`, t, period: match.period, team: best.team === 'U' ? undefined : best.team, playerId: best.label, scoring: false, confidence: mv.conf * Math.min(1, po.score + 0.3),
+            note: `${MOVEMENT_LABEL[mv.m]} · ${best.label}`, evidences: [{ cameraId: this.cameraId, t, kind: 'pose', detail: mv.detail, confidence: mv.conf }] })
+        }
+      }
+      for (const id of this.moves.keys()) if (!this.tracker.tracks.some((x) => x.id === id)) this.moves.delete(id)
+    }
     this.stats.frames++
     this.stats.avgInferMs = this.stats.avgInferMs * 0.9 + inferMs * 0.1
     const now = performance.now()
     if (this.stats.lastInferAt) this.stats.effectiveFps = this.stats.effectiveFps * 0.8 + (1000 / (now - this.stats.lastInferAt)) * 0.2
     this.stats.lastInferAt = now
-    return { tracks: visible, ballState: this.ball.state, ball: ballImg, trail: this.ball.history.slice(-40), detections: dets, inferMs, candidates, courtPlayers }
+    return { tracks: visible, ballState: this.ball.state, ball: ballImg, trail: this.ball.history.slice(-40), detections: dets, inferMs, candidates, courtPlayers, poses, poseMs }
   }
 
   /** Amostra posições a 1 Hz para mapas de calor (agregação; não salva quadros). */
