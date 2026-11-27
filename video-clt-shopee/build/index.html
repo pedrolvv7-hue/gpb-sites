@@ -1,0 +1,313 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Anton;src:url(fonts/anton-latin-400-normal.woff2)}
+@font-face{font-family:Anton;src:url(fonts/anton-latin-ext-400-normal.woff2);unicode-range:U+0100-024F}
+html,body{margin:0;background:#000}
+#stage{width:1080px;height:1920px;position:relative;overflow:hidden;font-family:Anton,Impact,sans-serif}
+svg{position:absolute;inset:0}
+</style></head><body>
+<div id="stage"><svg id="svg" width="1080" height="1920" viewBox="0 0 1080 1920"></svg></div>
+<script src="tl.js"></script>
+<script>
+const TL = window.TL;
+const O = '#2a1b12';           // outline
+const SW = 7;
+const svg = document.getElementById('svg');
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>{x=clamp(x);return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2};
+const back=x=>{x=clamp(x);const c=1.9;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const rnd=s=>{const x=Math.sin(s*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const env=(sp,t)=>{const a=TL.env[sp];const i=Math.floor(t*TL.fps);return a[i]||0};
+
+/* ---------- characters ---------- */
+// mood: normal, tired, shock, angry, happy, squint, pain
+function eyes(mood,blink,t){
+  let s='';
+  const eye=(x)=>{
+    if(blink||mood==='happy') return `<path d="M${x-26} -8 q26 -22 52 0" fill="none" stroke="${O}" stroke-width="8" stroke-linecap="round"/>`;
+    if(mood==='pain') return `<path d="M${x-22} -18 l44 18 l-44 18" fill="none" stroke="${O}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" transform="${x<0?'':'scale(-1,1) translate('+(-2*x)+',0)'}"/>`;
+    const r = mood==='shock'?40:30;
+    const pr = mood==='shock'?11:15;
+    let lid='';
+    if(mood==='tired') lid=`<path d="M${x-r-2} -${r+2} h${2*r+4} v${r} h-${2*r+4}z" fill="#c98d63" stroke="${O}" stroke-width="6"/>`;
+    if(mood==='squint') lid=`<path d="M${x-r-2} -${r+2} h${2*r+4} v${r+4} h-${2*r+4}z" fill="#c98d63"/><path d="M${x-r-2} ${2} h${2*r+4}" stroke="${O}" stroke-width="7"/><path d="M${x-r-2} ${r-2} h${2*r+4} v${r} h-${2*r+4}z" fill="#c98d63"/>`;
+    const px = mood==='squint'? (x<0?8:8):0;
+    return `<circle cx="${x}" cy="0" r="${r}" fill="#fff" stroke="${O}" stroke-width="6"/><circle cx="${x+px}" cy="2" r="${pr}" fill="${O}"/><circle cx="${x+px+5}" cy="-4" r="4" fill="#fff"/>${lid}`;
+  };
+  s+=eye(-48)+eye(48);
+  if(mood==='tired') s+=`<path d="M-80 38 q30 14 60 0 M20 38 q30 14 60 0" stroke="#8a5a7a" stroke-width="6" fill="none"/>`;
+  return s;
+}
+function brows(mood){
+  const m={normal:[-8,8],tired:[10,-10],shock:[-14,-14],angry:[18,-18],happy:[-6,6],squint:[16,-6],pain:[14,-14]}[mood]||[0,0];
+  return `<path d="M-80 ${-52+m[0]*-0.2} L-18 ${-52+m[0]}" stroke="${O}" stroke-width="12" stroke-linecap="round"/>
+          <path d="M18 ${-52+m[1]} L80 ${-52-m[1]*0.2}" stroke="${O}" stroke-width="12" stroke-linecap="round"/>`;
+}
+function mouth(open,mood){
+  const o=clamp(open);
+  if(mood==='happy'&&o<.15) return `<path d="M-40 70 q40 40 80 0" fill="${O}" stroke="${O}" stroke-width="6" stroke-linejoin="round"/>`;
+  if(o<.08){
+    if(mood==='angry'||mood==='squint') return `<path d="M-30 80 h60" stroke="${O}" stroke-width="8" stroke-linecap="round"/>`;
+    if(mood==='tired'||mood==='pain') return `<path d="M-30 86 q30 -18 60 0" stroke="${O}" stroke-width="8" fill="none" stroke-linecap="round"/>`;
+    return `<path d="M-26 76 q26 16 52 0" stroke="${O}" stroke-width="8" fill="none" stroke-linecap="round"/>`;
+  }
+  const w=30+o*16, h=10+o*58;
+  return `<ellipse cx="0" cy="${78+h/2-10}" rx="${w}" ry="${h/2+4}" fill="#5a1d1d" stroke="${O}" stroke-width="7"/>
+          <ellipse cx="0" cy="${78+h-4}" rx="${w*0.55}" ry="${Math.max(3,h*0.18)}" fill="#e46b6b"/>`;
+}
+// who: Z (CLT) or L (amigo)
+function head(who,mood,open,t){
+  const skin = who==='Z'?'#e2a77a':'#9a6240';
+  const blink = (t%3.7)<0.12;
+  let hair;
+  if(who==='Z'){
+    let sp=''; for(let i=0;i<=10;i++){const a=-Math.PI+i*Math.PI/10, j=(rnd(i+Math.floor(t*6))-.5)*8, r=(i%2?150:200)+j;
+      sp+=`L${Math.cos(a)*r*1.05} ${Math.sin(a)*r-40} `;}
+    hair=`<path d="M-155 -20 ${sp} L155 -20 Q120 -90 0 -95 Q-120 -90 -155 -20z" fill="#3b2418" stroke="${O}" stroke-width="${SW}" stroke-linejoin="round"/>`;
+  } else {
+    let c=''; for(let i=0;i<8;i++){c+=`<circle cx="${-130+i*37}" cy="${-118-Math.sin(i*1.3)*14}" r="38" fill="#1d120c" stroke="${O}" stroke-width="5"/>`}
+    hair=c;
+  }
+  const ears=`<ellipse cx="-150" cy="10" rx="24" ry="34" fill="${skin}" stroke="${O}" stroke-width="${SW}"/><ellipse cx="150" cy="10" rx="24" ry="34" fill="${skin}" stroke="${O}" stroke-width="${SW}"/>`;
+  const face=`<ellipse cx="0" cy="0" rx="150" ry="160" fill="${skin}" stroke="${O}" stroke-width="${SW}"/>`;
+  const cheeks = mood==='happy'?`<ellipse cx="-95" cy="50" rx="22" ry="12" fill="#e9837a" opacity=".6"/><ellipse cx="95" cy="50" rx="22" ry="12" fill="#e9837a" opacity=".6"/>`:'';
+  const beard = who==='Z'?`<g opacity=".25">${[...Array(14)].map((_,i)=>`<circle cx="${-60+rnd(i)*120}" cy="${95+rnd(i+9)*40}" r="3" fill="${O}"/>`).join('')}</g>`:'';
+  const nose=`<path d="M-6 20 q14 20 -4 34" stroke="${O}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  const shades = who==='L'?`<g transform="translate(0,-112)"><rect x="-96" y="-12" width="80" height="34" rx="12" fill="#1b2b3a" stroke="${O}" stroke-width="5"/><rect x="16" y="-12" width="80" height="34" rx="12" fill="#1b2b3a" stroke="${O}" stroke-width="5"/><path d="M-16 0 h32" stroke="${O}" stroke-width="5"/></g>`:'';
+  const sweat = (mood==='shock'||mood==='pain')?`<path d="M150 -70 q14 26 0 36 q-14 -10 0 -36z" fill="#7cc8ff" stroke="${O}" stroke-width="4"/>`:'';
+  return `${ears}${face}${hair}${shades}<g transform="translate(0,-10)">${eyes(mood,blink,t)}${brows(mood)}</g>${nose}${beard}${cheeks}${mouth(open,mood)}${sweat}`;
+}
+function body(who,arms){ // arms: {l:angle,r:angle} degrees
+  const shirt = who==='Z'?'#4f86c6':'#3fa34d';
+  const skin = who==='Z'?'#e2a77a':'#9a6240';
+  const al=arms&&arms.l!=null?arms.l:10, ar=arms&&arms.r!=null?arms.r:-10;
+  const arm=(x,ang,flip)=>`<g transform="translate(${x},40) rotate(${ang})"><rect x="-26" y="0" width="52" height="190" rx="26" fill="${shirt}" stroke="${O}" stroke-width="${SW}"/><circle cx="0" cy="200" r="30" fill="${skin}" stroke="${O}" stroke-width="${SW}"/></g>`;
+  const badge = who==='Z'?`<rect x="40" y="70" width="80" height="50" rx="6" fill="#fff" stroke="${O}" stroke-width="5"/><text x="80" y="108" font-size="34" text-anchor="middle" fill="${O}" font-family="Anton">CLT</text>`:
+     `<text x="0" y="140" font-size="60" text-anchor="middle" fill="#ffe14d" stroke="${O}" stroke-width="3" font-family="Anton">$</text>`;
+  return `${arm(-120,al)}${arm(120,ar)}
+    <path d="M-130 20 Q-140 0 -100 -10 L100 -10 Q140 0 130 20 L150 360 L-150 360 Z" fill="${shirt}" stroke="${O}" stroke-width="${SW}" stroke-linejoin="round"/>
+    <path d="M-40 -10 L0 40 L40 -10" fill="${skin}" stroke="${O}" stroke-width="6"/>${badge}`;
+}
+// full character at x,y (neck point), scale
+function char(who,{x,y,s=1,mood='normal',open=0,t=0,arms,rot=0,headRot=0,bob=0}){
+  const breathe=Math.sin(t*2.4+(who==='Z'?0:1))*4;
+  return `<g transform="translate(${x},${y+bob}) rotate(${rot}) scale(${s})">
+     <g transform="translate(0,${breathe*0.3})">${body(who,arms)}</g>
+     <g transform="translate(0,${-150+breathe}) rotate(${headRot})">${head(who,mood,open,t)}</g></g>`;
+}
+
+/* ---------- backgrounds ---------- */
+function bedroom(t){
+  const dawn=`<defs><linearGradient id="dw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d2a6b"/><stop offset="1" stop-color="#e48a6a"/></linearGradient></defs>`;
+  return `${dawn}<rect width="1080" height="1920" fill="#e9dcc0"/>
+   ${[...Array(12)].map((_,i)=>`<rect x="${i*90}" y="0" width="45" height="1400" fill="#e2d2b2"/>`).join('')}
+   <rect x="640" y="260" width="330" height="380" fill="url(#dw)" stroke="${O}" stroke-width="12"/>
+   <path d="M805 260 v380 M640 450 h330" stroke="${O}" stroke-width="10"/>
+   ${[...Array(5)].map((_,i)=>`<rect x="${660+i*60}" y="${520-rnd(i)*80}" width="40" height="${130+rnd(i)*80}" fill="#2b1f4a"/>`).join('')}
+   <rect x="0" y="1400" width="1080" height="520" fill="#8a5a3b"/><path d="M0 1400 h1080" stroke="${O}" stroke-width="10"/>`;
+}
+function livingroom(){
+  return `<rect width="1080" height="1920" fill="#cfe6d8"/>
+   ${[...Array(10)].map((_,i)=>`<circle cx="${(i%5)*240+80}" cy="${200+Math.floor(i/5)*260}" r="14" fill="#b8d6c4"/>`).join('')}
+   <rect x="120" y="300" width="230" height="170" fill="#f6c94a" stroke="${O}" stroke-width="10"/><path d="M150 440 l60-80 l50 60 l40-40 l40 60z" fill="#5aa36a"/>
+   <rect x="0" y="1380" width="1080" height="540" fill="#c48a5a"/><path d="M0 1380 h1080" stroke="${O}" stroke-width="10"/>
+   <g><rect x="90" y="1040" width="900" height="300" rx="40" fill="#d0574a" stroke="${O}" stroke-width="${SW}"/>
+   <rect x="60" y="960" width="110" height="420" rx="50" fill="#b9463b" stroke="${O}" stroke-width="${SW}"/>
+   <rect x="910" y="960" width="110" height="420" rx="50" fill="#b9463b" stroke="${O}" stroke-width="${SW}"/>
+   <rect x="120" y="1250" width="840" height="140" rx="30" fill="#e0685a" stroke="${O}" stroke-width="${SW}"/></g>`;
+}
+function bus(t){
+  const sway=Math.sin(t*3)*6;
+  let ppl='';
+  const cols=['#7a4fa0','#d47a2a','#2a7a8a','#9a3a4a','#557733','#444'];
+  for(let i=0;i<7;i++){ if(i===3) continue;
+    const x=80+i*155, y=780+ (i%2)*30, c=cols[i%6], sk=['#f0c09a','#7a4a2a','#c58a5a','#e7b38a'][i%4];
+    ppl+=`<g transform="translate(${x},${y+sway*(i%2?1:-1)}) rotate(${(i-3)*4})"><rect x="-95" y="0" width="190" height="900" rx="60" fill="${c}" stroke="${O}" stroke-width="${SW}"/><ellipse cx="0" cy="-90" rx="95" ry="105" fill="${sk}" stroke="${O}" stroke-width="${SW}"/><path d="M-40 -100 h20 M20 -100 h20" stroke="${O}" stroke-width="8"/><path d="M-20 -40 h40" stroke="${O}" stroke-width="7"/></g>`;
+  }
+  let win=''; for(let i=0;i<3;i++){const x=40+i*350; win+=`<rect x="${x}" y="260" width="300" height="300" rx="20" fill="#9fd3f0" stroke="${O}" stroke-width="10"/>${[...Array(3)].map((_,k)=>{const bx=((k*140- t*500)%420+420)%420 + x - 60; return `<rect x="${bx}" y="${380+k*20}" width="60" height="${200-k*30}" fill="#6f9fbf" clip-path="url(#cw${i})"/>`}).join('')}<clipPath id="cw${i}"><rect x="${x}" y="260" width="300" height="300" rx="20"/></clipPath>`}
+  return `<rect width="1080" height="1920" fill="#f2e6b8"/>${win}
+    <path d="M0 210 h1080" stroke="#999" stroke-width="18"/>${[...Array(6)].map((_,i)=>`<path d="M${90+i*180} 210 v80" stroke="#999" stroke-width="8"/><circle cx="${90+i*180}" cy="310" r="22" fill="none" stroke="#777" stroke-width="8"/>`).join('')}
+    ${ppl}`;
+}
+function burst(cx,cy,r,col,t,n=14){
+  let p=''; for(let i=0;i<n*2;i++){const a=i*Math.PI/n+t*0.5, rr=i%2?r*0.62:r; p+=`${i?'L':'M'}${cx+Math.cos(a)*rr} ${cy+Math.sin(a)*rr} `}
+  return `<path d="${p}Z" fill="${col}" stroke="${O}" stroke-width="8" stroke-linejoin="round"/>`;
+}
+function rays(col1,col2,t){
+  let s=`<rect width="1080" height="1920" fill="${col1}"/>`;
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2+t*0.4, b=a+Math.PI/24; s+=`<path d="M540 900 L${540+Math.cos(a)*2400} ${900+Math.sin(a)*2400} L${540+Math.cos(b)*2400} ${900+Math.sin(b)*2400}Z" fill="${col2}"/>`}
+  return s;
+}
+function phone(x,y,s,content,rot=0){
+  return `<g transform="translate(${x},${y}) rotate(${rot}) scale(${s})"><rect x="-70" y="-130" width="140" height="260" rx="22" fill="#222" stroke="${O}" stroke-width="7"/><rect x="-58" y="-112" width="116" height="224" rx="10" fill="${content||'#ff6a2b'}"/></g>`;
+}
+function txt(x,y,size,str,fill='#fff',anchor='middle',extra=''){
+  return `<text x="${x}" y="${y}" font-size="${size}" text-anchor="${anchor}" fill="${fill}" stroke="${O}" stroke-width="${size/7}" paint-order="stroke" stroke-linejoin="round" font-family="Anton" ${extra}>${str}</text>`;
+}
+/* product icons for montage */
+const products=[
+ (c)=>`<rect x="-60" y="-20" width="120" height="110" rx="14" fill="#7ec8e3" stroke="${O}" stroke-width="7"/><rect x="-40" y="-90" width="80" height="80" rx="10" fill="#cdeffd" stroke="${O}" stroke-width="7"/><circle cx="0" cy="40" r="20" fill="#fff" stroke="${O}" stroke-width="6"/>`, // blender
+ (c)=>`<path d="M-70 30 a70 70 0 0 1 140 0" fill="none" stroke="${O}" stroke-width="16"/><rect x="-90" y="10" width="40" height="70" rx="16" fill="#ff6a2b" stroke="${O}" stroke-width="7"/><rect x="50" y="10" width="40" height="70" rx="16" fill="#ff6a2b" stroke="${O}" stroke-width="7"/>`, // headphones
+ (c)=>`<rect x="-24" y="-100" width="48" height="200" rx="14" fill="#555" stroke="${O}" stroke-width="7"/><rect x="-55" y="-55" width="110" height="110" rx="26" fill="#222" stroke="${O}" stroke-width="7"/><text x="0" y="12" font-size="34" text-anchor="middle" fill="#7f7" font-family="Anton">12:00</text>`, // watch
+ (c)=>`<path d="M-50 -60 h100 l30 70 h-160z" fill="#ffd34d" stroke="${O}" stroke-width="7"/><rect x="-8" y="10" width="16" height="70" fill="#888" stroke="${O}" stroke-width="5"/><rect x="-50" y="80" width="100" height="18" rx="6" fill="#666" stroke="${O}" stroke-width="5"/>`, // lamp
+ (c)=>`<circle cx="-10" cy="0" r="70" fill="#333" stroke="${O}" stroke-width="7"/><circle cx="-10" cy="0" r="50" fill="#555"/><rect x="55" y="-12" width="90" height="24" rx="10" fill="#8a5a3b" stroke="${O}" stroke-width="6"/><ellipse cx="-10" cy="0" rx="26" ry="18" fill="#ffd34d"/>`, // pan + egg
+ (c)=>`<rect x="-80" y="-50" width="160" height="100" rx="20" fill="#f06aa8" stroke="${O}" stroke-width="7"/><circle cx="-40" cy="0" r="18" fill="#fff" stroke="${O}" stroke-width="5"/><circle cx="40" cy="0" r="18" fill="#fff" stroke="${O}" stroke-width="5"/>`, // speaker
+];
+const prodNames=['MINI LIQUIDIFICADOR','FONE BLUETOOTH','SMARTWATCH','LUMINÁRIA LED','FRIGIDEIRA','CAIXINHA DE SOM'];
+
+/* ---------- captions ---------- */
+function captions(t){
+  let line=null; for(const l of TL.lines){ if(t>=l.start-0.05 && t<l.end+0.25){line=l} }
+  if(!line) return '';
+  // group words in chunks of 3
+  const w=line.words; let idx=0; for(let i=0;i<w.length;i++) if(t>=w[i][0]) idx=i;
+  const g0=Math.floor(idx/3)*3, grp=w.slice(g0,g0+3);
+  const sizes=grp.map(x=>x[1].length);
+  let total=grp.reduce((a,x)=>a+x[1].length,0);
+  const fs= total>16? 88 : total>11? 104 : 124;
+  const colorFor=(x,i)=> x[2] ? (line.sp==='L'?'#ffd21f':'#ff8a1f') : '#ffffff';
+  let s=`<g>`;
+  const spans=grp.map((x,i)=>{
+    const on=t>=x[0]; const age=t-x[0]; const k=on?back(Math.min(1,age/0.18)):0;
+    const sc=on?(0.6+0.4*k)*(x[2]?1.12:1):0.6;
+    return `<tspan fill="${colorFor(x,i)}" opacity="${on?1:0.0}" font-size="${fs*sc}">${x[1]} </tspan>`}).join('');
+  s+=`<text x="540" y="1240" text-anchor="middle" font-family="Anton" stroke="${O}" stroke-width="${fs/6}" paint-order="stroke" stroke-linejoin="round">${spans}</text></g>`;
+  // speaker tag
+  const nm=line.sp==='Z'?'ZÉ (CLT)':'LÉO (AFILIADO)';
+  return s;
+}
+function adTag(){
+  return `<g><rect x="300" y="186" width="480" height="58" rx="29" fill="rgba(0,0,0,.55)"/><text x="540" y="226" font-size="30" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="800" letter-spacing="2">PUBLICIDADE • LINK DE AFILIADO</text></g>`;
+}
+
+/* ---------- scenes ---------- */
+const Z=(t)=>env('Z',t), L=(t)=>env('L',t);
+function scene(t){
+  let s='', cam={x:0,y:0,s:1,r:0};
+  const shake=(amt)=>{cam.x+=(rnd(Math.floor(t*30))-.5)*amt;cam.y+=(rnd(Math.floor(t*30)+7)-.5)*amt;};
+  if(t<3.75){ // S1a: alarm
+    s+=bedroom(t);
+    const ring = t<2.2 || (t>3.0);
+    s+=`<g><rect x="80" y="1100" width="920" height="320" rx="30" fill="#5a7bd0" stroke="${O}" stroke-width="${SW}"/><rect x="60" y="980" width="60" height="460" rx="20" fill="#7a4a2a" stroke="${O}" stroke-width="${SW}"/></g>`;
+    const up=ease((t-0.4)/0.5);
+    s+=char('Z',{x:480,y:1010-up*90,s:1.15,mood: t<0.9?'tired':(t<2?'shock':'tired'),open:Z(t),t,arms:{l:20+Math.sin(t*20)*(t<1?20:0),r:-40},headRot:Math.sin(t*1.5)*4});
+    s+=`<rect x="60" y="1180" width="960" height="260" rx="40" fill="#f2f2f2" stroke="${O}" stroke-width="${SW}"/>`; // blanket
+    const jx=ring?Math.sin(t*90)*14:0;
+    s+=`<g transform="translate(${860+jx},1030) rotate(${ring?Math.sin(t*70)*12:0})"><circle r="95" fill="#e44" stroke="${O}" stroke-width="${SW}"/><circle r="72" fill="#fff" stroke="${O}" stroke-width="6"/><circle cx="-55" cy="-90" r="28" fill="#e44" stroke="${O}" stroke-width="6"/><circle cx="55" cy="-90" r="28" fill="#e44" stroke="${O}" stroke-width="6"/>${txt(0,22,58,'05:00','#e44')}</g>`;
+    if(ring) s+=`<g stroke="${O}" stroke-width="8" stroke-linecap="round"><path d="M730 940 l-40 -40 M990 940 l40 -40 M720 1030 h-50 M1000 1030 h50"/></g>`;
+    if(t<0.6) s+=txt(540,520,150,'TRIIIIM!!','#ffd21f','middle',`transform="rotate(-6 540 520)"`);
+    if(ring) shake(16);
+  } else if(t<6.35){ // S1b: dedinho
+    s+=bedroom(t);
+    const hop=Math.abs(Math.sin((t-3.75)*9))*50;
+    s+=char('Z',{x:520,y:830-hop,s:1.25,mood:'pain',open:Z(t),t,arms:{l:60,r:-80},rot:Math.sin(t*9)*8});
+    s+=`<rect x="980" y="700" width="100" height="800" fill="#d8c8a6" stroke="${O}" stroke-width="10"/>`;
+    s+=`<g transform="translate(${760},${1420-hop})"><ellipse rx="70" ry="34" fill="#e2a77a" stroke="${O}" stroke-width="${SW}"/><circle cx="62" cy="-6" r="20" fill="#f06060" stroke="${O}" stroke-width="5"/></g>`;
+    const k=back((t-3.75)/0.25);
+    s+=`<g transform="translate(860,1300) scale(${k})">${burst(0,0,170,'#ffd21f',t)}${txt(0,30,90,'POW!','#e33')}</g>`;
+    if(t<4.3) shake(30);
+  } else if(t<7.35){ // S1c: meanwhile friend chill
+    s+=livingroom();
+    s+=char('L',{x:560,y:870,s:1.1,mood:'happy',open:0,t,arms:{l:30,r:-120},rot:-70,headRot:60});
+    s+=phone(700,800,0.9,'#ff6a2b',-20);
+    s+=txt(540,560,96,'ENQUANTO ISSO...','#fff','middle',`transform="rotate(-4 540 560)"`);
+  } else if(t<38.45 || (t>=38.45 && t<64.45)){
+    // dialogue + offer section; choose by active line
+    let cur=null; for(const l of TL.lines){ if(t>=l.start-0.12) cur=l }
+    const id=cur.id;
+    const zb=(mood,extra={})=>{s+=bus(t); s+=char('Z',Object.assign({x:540,y:900,s:1.3,mood,open:Z(t),t,arms:{l:150,r:-20},bob:Math.sin(t*3)*6},extra)); s+=phone(390,560,0.75,'#ff6a2b',-10);};
+    const lv=(mood,extra={})=>{s+=livingroom(); s+=char('L',Object.assign({x:540,y:880,s:1.25,mood,open:L(t),t,arms:{l:20,r:-150}},extra)); s+=phone(720,640,0.8,'#ff6a2b',15);};
+    if(id==='w02'||id==='w01'){ zb('angry'); }
+    else if(id==='w03'){ zb('angry'); }
+    else if(id==='f01'){ lv('happy'); if(t>11.0) { /* suspicious cutaway */ } }
+    else if(id==='w04'){
+      if(t<12.75){ s+=bus(t); s+=char('Z',{x:540,y:980,s:1.8,mood:'squint',open:0,t,arms:{l:150,r:-20}}); s+=txt(540,560,110,'🤨'.length?'HMMM...':'','#fff'); }
+      else zb('squint');
+    }
+    else if(id==='f02'){ const rl=(t-16.35); lv('happy',{rot:Math.sin(rl*10)*12,headRot:Math.sin(rl*14)*10,bob:-Math.abs(Math.sin(rl*10))*30});
+      for(let i=0;i<3;i++){const yy=520-((t*1.3+i*0.33)%1)*200; s+=txt(200+i*340,yy,80,'KKKK','#ffd21f','middle',`opacity="${0.9}"`)}
+    }
+    else if(id==='w05'){ const k=ease((t-19.95)/0.35);
+      s+=rays('#e63b2e','#ff6a3a',t); s+=char('Z',{x:540,y:1000+k*520,s:1.4+k*1.6,mood:'shock',open:Z(t),t,arms:{l:150,r:-150}}); shake(26);
+      s+=txt(540,520,190,'3.000?!','#ffd21f','middle',`transform="rotate(-5 540 520)"`);
+    }
+    else if(id==='f03'){ // montage
+      const lt=Math.max(0,t-22.1);
+      s+=`<rect width="1080" height="1920" fill="#ff6a2b"/>`;
+      for(let i=0;i<40;i++){s+=`<circle cx="${(i*97)%1080}" cy="${((i*211)+t*60)%1920}" r="${6+(i%3)*4}" fill="#ff8a50"/>`}
+      // phone feed with products scrolling
+      const pi=Math.floor(lt/1.6)%6, pf=(lt%1.6)/1.6;
+      s+=`<g transform="translate(540,720)"><rect x="-230" y="-420" width="460" height="840" rx="50" fill="#1b1b1b" stroke="${O}" stroke-width="10"/><clipPath id="scr"><rect x="-205" y="-390" width="410" height="780" rx="30"/></clipPath><g clip-path="url(#scr)">`;
+      for(let k=0;k<2;k++){const idx=(pi+k)%6, off=(k-ease(clamp((pf-0.75)/0.25)))*780;
+        s+=`<g transform="translate(0,${off})"><rect x="-205" y="-390" width="410" height="780" fill="${['#fff4d6','#e0f3ff','#ffe3ef','#e9ffe0','#f1e6ff','#fff0e0'][idx]}"/><g transform="translate(0,-60) scale(${1.6+Math.sin(lt*4)*0.05})">${products[idx]()}</g>${txt(0,190,40,prodNames[idx],'#fff')}${txt(0,250,34,'ACHADINHO 🔥'.replace('🔥',''),'#ffd21f')}<rect x="-170" y="300" width="340" height="60" rx="30" fill="#ff4d2e" stroke="${O}" stroke-width="5"/>${txt(0,342,32,'LINK NA BIO','#fff')}</g>`;}
+      s+=`</g></g>`;
+      // steps
+      const steps=[[22.1,'1. CONTA DE AFILIADO'],[24.6,'2. AGUARDA APROVAÇÃO'],[26.2,'3. ESCOLHE O VÍDEO'],[28.4,'4. COLOCA TEU LINK'],[29.6,'5. PUBLICA'],[30.4,'6. RECEBE COMISSÃO*']];
+      steps.forEach(([st,lab],i)=>{ if(t>=st){const k=back((t-st)/0.3); s+=`<g transform="translate(${-500+k*500},0)"><rect x="40" y="${1290+ (i%3)*0}" width="0" height="0"/></g>`} });
+      // show latest step as banner above captions
+      let last=null; steps.forEach(st=>{if(t>=st[0]) last=st});
+      if(last){const k=back((t-last[0])/0.3); s+=`<g transform="translate(540,1450) scale(${k})"><rect x="-400" y="-55" width="800" height="100" rx="20" fill="#fff" stroke="${O}" stroke-width="7"/>${txt(0,22,62,last[1],'#ff4d2e')}</g>`}
+      if(t>30.4) s+=`<text x="540" y="1630" font-size="26" fill="#fff" text-anchor="middle" font-family="Inter" font-weight="700">*Comissão sobre vendas qualificadas. Ganhos não garantidos.</text>`;
+      // friend head in corner
+      s+=`<g transform="translate(180,1560) scale(0.55)">${head('L','happy',L(t),t)}</g>`;
+      s+=txt(830,180+70,0,'');
+    }
+    else if(id==='w06'){ zb('happy',{arms:{l:150,r:-150}}); s+=txt(540,520,100,'SEM APARECER?','#ffd21f'); }
+    else if(id==='f04'){ lv('happy',{arms:{l:20,r:-170}}); s+=`<g transform="translate(820,560) scale(${back((t-35.6)/0.25)})">${burst(0,0,120,'#ffd21f',t)}${txt(0,25,70,'👍'.length?'ISSO!':'','#e33')}</g>`; }
+    else if(id==='w07'){ const k=ease((t-36.35)/0.25); s+=rays('#7a1fa0','#9a3fc0',t); s+=char('Z',{x:540,y:1000+k*300,s:1.5+k*0.9,mood:'angry',open:Z(t),t,arms:{l:150,r:-160}}); shake(12); }
+    else if(id==='w08'){ zb('squint'); const k=back((t-39.8)/0.3); if(t>39.8) s+=`<g transform="translate(800,520) scale(${k})"><ellipse rx="210" ry="120" fill="#fff" stroke="${O}" stroke-width="8"/><path d="M-60 100 l-50 80 l100 -70" fill="#fff" stroke="${O}" stroke-width="8"/>${txt(0,30,100,'R$ 500?','#333')}</g>`; }
+    else if(id==='f05'){ // offer
+      const lt=Math.max(0,t-42.45);
+      s+=rays('#ffcf2e','#ffe066',t);
+      // crossed 500
+      if(lt<2.0){ const k=back(lt/0.3); s+=`<g transform="translate(540,640) scale(${k})">${txt(0,40,200,'R$ 500','#888')}${lt>0.8?`<path d="M-330 -40 L330 60" stroke="#e33" stroke-width="30" stroke-linecap="round"/>`:''}</g>`; }
+      else { const k=back((lt-2.0)/0.35);
+        s+=`<g transform="translate(540,560) scale(${k}) rotate(-4)"><rect x="-380" y="-170" width="760" height="300" rx="40" fill="#ff4d2e" stroke="${O}" stroke-width="10"/>${txt(0,-90,60,'SÓ','#fff')}${txt(0,90,210,'R$ 24,90','#fff')}</g>`;
+        const items=['+3.000 VÍDEOS PRONTOS','VÍDEOS NARRADOS','STORIES E CARROSSÉIS','ESTRATÉGIAS','ATUALIZAÇÕES','ACESSO VITALÍCIO','SEM MENSALIDADE'];
+        items.forEach((it,i)=>{const st=3.6+i*0.95; if(lt>=st){const kk=back((lt-st)/0.25); s+=`<g transform="translate(${540-(1-kk)*600},${800+i*62})"><circle cx="-330" cy="-16" r="22" fill="#3fa34d" stroke="${O}" stroke-width="5"/><path d="M-342 -16 l9 10 l17 -20" stroke="#fff" stroke-width="6" fill="none"/>${txt(-290,0,46,it,'#fff','start')}</g>`}});
+      }
+      s+=`<g transform="translate(900,1640) scale(0.5)">${head('L','happy',L(t),t)}</g>`;
+    }
+    else if(id==='w09'){ const lt=t-53.25; s+=rays('#1d4fd0','#3a6af0',t);
+      s+=char('Z',{x:540,y:950,s:1.6,mood:'shock',open:Z(t),t,arms:{l:150,r:-150},rot:Math.sin(lt*30)*3}); shake(18);
+      const fall=clamp((lt-1.2)/1.2); s+=phone(760,640+fall*1200,0.9,'#ff6a2b',fall*540);
+      s+=txt(540,480,170,'24,90?!','#ffd21f','middle',`transform="rotate(4 540 480)"`);
+      if(lt<0.12) s+=`<rect width="1080" height="1920" fill="#fff" opacity="${1-lt/0.12}"/>`;
+    }
+    else if(id==='w10'){ zb('shock',{arms:{l:160,r:-160}}); s+=txt(540,520,110,'MANDA LOGO!','#ff8a1f'); shake(10);}
+    else if(id==='f06'){ const lt=t-58.1;
+      s+=livingroom(); s+=char('L',{x:540,y:860,s:1.35,mood:'happy',open:L(t),t,arms:{l:20,r: lt>4.5? -20 : -150}});
+      // pointing down arrow
+      if(lt>4.5){ const b=Math.abs(Math.sin(lt*6))*30; s+=`<g transform="translate(820,${1380+b})"><path d="M-40 -90 h80 v90 h50 l-90 100 l-90 -100 h50z" fill="#ffd21f" stroke="${O}" stroke-width="8" stroke-linejoin="round"/></g>`; }
+      if(lt>4.2){ const k=back((lt-4.2)/0.3); s+=`<g transform="translate(540,470) scale(${k}) rotate(-3)"><rect x="-360" y="-90" width="720" height="160" rx="30" fill="#ff4d2e" stroke="${O}" stroke-width="9"/>${txt(0,40,110,'COMENTE "EU QUERO"','#fff')}</g>`; }
+    }
+  }
+  if(t>=64.45){ // typing + end cards
+    const lt=t-64.45;
+    s+=`<rect width="1080" height="1920" fill="#14141f"/>`;
+    // phone with comments
+    s+=`<g transform="translate(540,640)"><rect x="-300" y="-400" width="600" height="760" rx="50" fill="#fff" stroke="${O}" stroke-width="10"/><text x="-250" y="-330" font-size="34" font-family="Inter" font-weight="800" fill="#111">Comentários</text>`;
+    const n=Math.min(6,Math.floor(lt*5)+1);
+    for(let i=0;i<n;i++){ const y=-260+i*100; s+=`<circle cx="-230" cy="${y}" r="32" fill="${['#e2a77a','#9a6240','#f0c09a','#c58a5a','#7a4a2a','#e7b38a'][i]}" stroke="${O}" stroke-width="4"/><text x="-180" y="${y-6}" font-size="22" font-family="Inter" fill="#777">${i===0?'zé_clt':'usuario'+(i*37)}</text><text x="-180" y="${y+28}" font-size="34" font-family="Inter" font-weight="800" fill="#111">EU QUERO${i===0?'!!!!':''}</text>`;}
+    s+=`</g>`;
+    // Zé typing frantically
+    s+=`<g transform="translate(540,1180) scale(0.6)">${head('Z','shock',0.3+Math.abs(Math.sin(t*20))*0.4,t)}</g>`;
+    for(let i=0;i<2;i++) s+=`<circle cx="${430+i*220}" cy="${1330+Math.sin(t*40+i*2)*20}" r="34" fill="#e2a77a" stroke="${O}" stroke-width="6"/>`;
+    // end cards over
+    const cards=['+3.000 VÍDEOS PRONTOS','NÃO PRECISA APARECER','R$ 24,90 · PAGAMENTO ÚNICO','ACESSO VITALÍCIO','COMENTE "EU QUERO"','TE ENVIO O LINK NO PRIVADO!'];
+    if(lt>0.6){
+      s+=`<rect width="1080" height="1920" fill="rgba(10,10,20,${clamp((lt-0.6)/0.3)*0.82})"/>`;
+      cards.forEach((c,i)=>{const st=0.7+i*0.32; if(lt>=st){const k=back((lt-st)/0.25); const hot=i>=4;
+        s+=`<g transform="translate(540,${430+i*150}) scale(${k})"><rect x="-450" y="-62" width="900" height="112" rx="24" fill="${hot?'#ff4d2e':'#fff'}" stroke="${O}" stroke-width="8"/>${txt(0,26,i===2?66:70,c, hot?'#fff':'#ff4d2e')}</g>`}});
+    }
+  }
+  return {s,cam};
+}
+
+window.renderAt = function(t){
+  const {s,cam}=scene(t);
+  svg.innerHTML = `<g transform="translate(${cam.x},${cam.y})">${s}</g>${captions(t)}${adTag()}`;
+};
+window.renderAt(0);
+</script></body></html>
